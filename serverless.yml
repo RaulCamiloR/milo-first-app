@@ -1,0 +1,54 @@
+service: videogames
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  region: us-east-1
+  environment:
+    REGION: ${self:provider.region}
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:PutItem
+            - dynamodb:GetItem
+          Resource:
+            Fn::GetAtt: [VideogamesTable, Arn]
+
+functions:
+  newVideogame:
+    handler: handler.newVideogame
+    environment:
+      VIDEOGAMES_TABLE:
+        Ref: VideogamesTable
+    events:
+      - httpApi:
+          path: /videogame
+          method: post
+
+  getVideogame:
+    handler: handler.getVideogame
+    environment:
+      VIDEOGAMES_TABLE:
+        Ref: VideogamesTable    
+    events:
+      - httpApi:
+          path: /videogame/{id}
+          method: get
+
+resources: # CloudFormation template syntax
+  Resources:
+    VideogamesTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: Videogames
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
